@@ -237,7 +237,7 @@ async function testConnection() {
         const res = await fetch(url, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ model: isGroq ? "llama3-8b-8192" : "deepseek-ai/DeepSeek-V3", messages: [{ role: "user", content: "Hi" }], max_tokens: 5 })
+            body: JSON.stringify({ model: isGroq ? "llama-3.3-70b-versatile" : "deepseek-ai/DeepSeek-V3", messages: [{ role: "user", content: "Hi" }], max_tokens: 5 })
         });
         alert(res.ok ? '✅ Conexão Premium Ativa!' : '❌ Falha na conexão.');
     } catch (e) { alert('❌ Erro de rede.'); }
