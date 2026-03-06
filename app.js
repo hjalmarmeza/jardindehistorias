@@ -12,6 +12,8 @@ const state = {
     selectedVoice: localStorage.getItem('jardim_voice') || 'Google Português'
 };
 
+const VERSION = "1.0.1";
+
 document.addEventListener('DOMContentLoaded', () => initApp());
 
 function initApp() {
@@ -21,6 +23,39 @@ function initApp() {
     }
     setupEventListeners();
     document.getElementById('apiKey').value = state.apiKey;
+
+    // Start secret update checker
+    checkUpdates();
+    setInterval(checkUpdates, 600000); // Check every 10 minutes
+}
+
+async function checkUpdates() {
+    const dot = document.getElementById('updateStatus');
+    if (!dot) return;
+
+    try {
+        const res = await fetch(`version.json?t=${Date.now()}`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        if (data.version !== VERSION) {
+            // New version available!
+            dot.style.background = '#ef4444'; // Rojo (Secret alert)
+            console.log('Update available:', data.version);
+
+            // Auto-update after 3 seconds if not reading
+            setTimeout(() => {
+                if (!state.isReading) {
+                    window.location.reload(true);
+                }
+            }, 3000);
+        } else {
+            dot.style.background = '#10b981'; // Verde (Up to date)
+            console.log('App up to date:', VERSION);
+        }
+    } catch (e) {
+        console.warn('Update check failed:', e);
+    }
 }
 
 function loadVoices() {

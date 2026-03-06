@@ -83,6 +83,22 @@ h3,
     overflow: hidden;
     border: 1.5px solid var(--accent-emerald);
     background: #000;
+    position: relative;
+    /* For the dot */
+}
+
+.status-dot {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #10b981;
+    /* Default green */
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+    z-index: 10;
+    pointer-events: none;
 }
 
 .header-logo {
