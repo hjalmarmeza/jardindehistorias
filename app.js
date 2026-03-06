@@ -12,7 +12,7 @@ const state = {
     selectedVoice: localStorage.getItem('jardim_voice') || 'Google Português'
 };
 
-const VERSION = "1.1.0";
+const VERSION = "1.1.1";
 
 document.addEventListener('DOMContentLoaded', () => initApp());
 
@@ -339,7 +339,8 @@ async function testConnection() {
     } catch (e) {
         console.error('❌ System Error:', e);
         const keyInfo = `Key: ${key.substring(0, 5)}... (Len: ${key.length})`;
-        alert(`❌ Erro WebKit: ${e.message}\n\n${keyInfo}\n\nSOLUÇÃO (iOS):\n1. Desative VPN/AdBlock.\n2. Verifique se o Relé Privado (iCloud) está ON.\n3. Se persistir, use o botão 'Limpar Tudo' nos ajustes.`);
+        const isOnline = window.navigator.onLine ? "Sim" : "Não";
+        alert(`❌ Erro de Rede (WebKit): ${e.message}\n\nConectado: ${isOnline}\n${keyInfo}\n\nSOLUÇÃO PARA IPHONE:\n1. DESATIVE AdBlock/VPN.\n2. DESATIVE o "Relé Privado" (Privary Relay) no iCloud.\n3. Se estiver no 4G, tente WiFi (o vice-versa).\n4. Use o botão 'Limpar Tudo' e cole a chave novamente.`);
     } finally {
         btn.innerText = 'Testar Conexão';
     }
