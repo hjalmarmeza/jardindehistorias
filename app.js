@@ -12,7 +12,7 @@ const state = {
     selectedVoice: localStorage.getItem('jardim_voice') || 'Google Português'
 };
 
-const VERSION = "1.0.5";
+const VERSION = "1.0.6";
 
 document.addEventListener('DOMContentLoaded', () => initApp());
 
@@ -291,15 +291,17 @@ async function testConnection() {
         const isGroq = key.startsWith('gsk_');
         const url = isGroq ? 'https://api.groq.com/openai/v1/chat/completions' : 'https://api.siliconflow.cn/v1/chat/completions';
 
-        const res = await fetch(url, {
+        // Final attempt at Safari compatibility: Cache busting + simpler model
+        const res = await fetch(url + `?nocache=${Date.now()}`, {
             method: 'POST',
+            cache: 'no-store',
             headers: {
-                'Authorization': `Bearer ${key}`,
+                'Authorization': `Bearer ${key.trim()}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: isGroq ? "llama-3.3-70b-versatile" : "deepseek-ai/DeepSeek-V3",
-                messages: [{ role: "user", content: "Hi" }]
+                model: isGroq ? "llama-3.1-8b-instant" : "deepseek-ai/DeepSeek-V3",
+                messages: [{ role: "user", content: "hi" }]
             })
         });
 
@@ -313,7 +315,7 @@ async function testConnection() {
         alert('✅ Conexão Premium Ativa!');
     } catch (e) {
         console.error('❌ Erro de Sistema:', e);
-        alert(`❌ Erro: ${e.message}\n\nNo iPhone, isso ocorre por:\n1. Bloqueador de anúncios ativado.\n2. "Relé Privado" (iCloud Private Relay) bloqueando a API.\n3. Falta de permissão de dados móviles.`);
+        alert(`❌ Erro: ${e.message}\n\nSOLUÇÃO PARA IPHONE:\n1. Desative "AdBlock" / "AdGuard" para este site.\n2. Desative o "Relé Privado" do iCloud en Ajustes.\n3. O Safari pode estar bloqueando a API. Tente usar o Google Chrome no celular.`);
     } finally {
         btn.innerText = 'Testar Conexão';
     }
@@ -342,7 +344,7 @@ async function translateWord(word) {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: isGroq ? "llama-3.3-70b-versatile" : "deepseek-ai/DeepSeek-V3",
+                model: isGroq ? "llama-3.1-8b-instant" : "deepseek-ai/DeepSeek-V3",
                 messages: [
                     { role: "system", content: "Você é um tradutor rápido de português para espanhol. Responda apenas com a tradução da palavra." },
                     { role: "user", content: `Traduza para espanhol a palavra: "${cleanWord}"` }
