@@ -12,7 +12,7 @@ const state = {
     selectedVoice: localStorage.getItem('jardim_voice') || 'Google Português'
 };
 
-const VERSION = "1.0.9";
+const VERSION = "1.1.0";
 
 document.addEventListener('DOMContentLoaded', () => initApp());
 
@@ -146,8 +146,9 @@ async function startStoryProcess(category) {
     try {
         const story = await fetchStoryFromIA(category);
         displayStory(story);
-    } catch (error) {
-        alert('O jardim encontrou uma névoa... Tente novamente.');
+    } catch (e) {
+        console.error('Erro no processo:', e);
+        alert(`O jardim encontrou uma névoa...\n\nMotivo: ${e.message}\n\nTente novamente ou verifique sua conexão.`);
         backToGarden();
     } finally {
         document.getElementById('storyLoader').classList.add('hidden');
@@ -164,6 +165,9 @@ async function fetchStoryFromIA(category) {
     const isGroq = key.startsWith('gsk_');
     const url = isGroq ? 'https://api.groq.com/openai/v1/chat/completions' : 'https://api.siliconflow.cn/v1/chat/completions';
 
+    // Using 8b model for mobile stability and speed
+    const model = isGroq ? "llama-3.1-8b-instant" : "deepseek-ai/DeepSeek-V3";
+
     const prompts = {
         rosa: "Vida cotidiana", lotus: "Fábulas de sabedoria", girassol: "Aventuras alegres", lavanda: "Contos relaxantes"
     };
@@ -177,12 +181,17 @@ async function fetchStoryFromIA(category) {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            model: isGroq ? "llama-3.3-70b-versatile" : "deepseek-ai/DeepSeek-V3",
+            model: model, // Changed to stable model
             messages: [{ role: "system", content: sysPrompt }, { role: "user", content: prompts[category] }],
             response_format: { type: "json_object" },
             temperature: 0.8
         })
     });
+
+    if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error?.message || `API Error ${response.status}`);
+    }
 
     const data = await response.json();
     return JSON.parse(data.choices[0].message.content);
@@ -314,7 +323,7 @@ async function testConnection() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: isGroq ? "llama-3.1-8b-instant" : "deepseek-ai/DeepSeek-V3",
+                model: isGroq ? "llama-3.1-8b-instant" : "deepseek-ai/DeepSeek-V3", // Using stable model
                 messages: [{ role: "user", content: "hi" }]
             })
         });
@@ -359,7 +368,7 @@ async function translateWord(word) {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: isGroq ? "llama-3.1-8b-instant" : "deepseek-ai/DeepSeek-V3",
+                model: isGroq ? "llama-3.1-8b-instant" : "deepseek-ai/DeepSeek-V3", // Using stable model
                 messages: [
                     { role: "system", content: "Você é um tradutor rápido de português para espanhol. Responda apenas com a tradução da palavra." },
                     { role: "user", content: `Traduza para espanhol a palavra: "${cleanWord}"` }
