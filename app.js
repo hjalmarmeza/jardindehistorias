@@ -12,7 +12,7 @@ const state = {
     selectedVoice: localStorage.getItem('jardim_voice') || 'Google Português'
 };
 
-const VERSION = "1.0.7";
+const VERSION = "1.0.8";
 
 document.addEventListener('DOMContentLoaded', () => initApp());
 
@@ -276,6 +276,14 @@ function saveSettings() {
     alert('✨ Ajustes Salvos!');
 }
 
+function clearAllData() {
+    if (confirm('Isso apagará sua chave e resetará a app. Confirmar?')) {
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.reload(true);
+    }
+}
+
 async function testConnection() {
     const btn = document.getElementById('testConnection');
     let keyInput = document.getElementById('apiKey').value.trim();
@@ -291,15 +299,18 @@ async function testConnection() {
         const isGroq = key.startsWith('gsk_');
         const url = isGroq ? 'https://api.groq.com/openai/v1/chat/completions' : 'https://api.siliconflow.cn/v1/chat/completions';
 
-        // Back to basics: Standard POST without extra headers or cache-busting
+        // Strategy for iOS stability: Minimal headers + No-Cache + Referrer policy
         const res = await fetch(url, {
             method: 'POST',
+            mode: 'cors',
+            cache: 'no-cache',
+            referrerPolicy: 'no-referrer',
             headers: {
                 'Authorization': `Bearer ${key}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: isGroq ? "llama-3.3-70b-versatile" : "deepseek-ai/DeepSeek-V3",
+                model: isGroq ? "llama-3.1-8b-instant" : "deepseek-ai/DeepSeek-V3",
                 messages: [{ role: "user", content: "hi" }]
             })
         });
@@ -307,16 +318,15 @@ async function testConnection() {
         if (!res.ok) {
             const errBody = await res.json();
             console.error('❌ API Error:', errBody);
-            alert(`⚠️ API Error (${res.status}):\n${errBody.error?.message || JSON.stringify(errBody)}`);
+            alert(`⚠️ Resposta da API (${res.status}):\n${errBody.error?.message || JSON.stringify(errBody)}`);
             return;
         }
 
         alert('✅ Conexão Premium Ativa!');
     } catch (e) {
         console.error('❌ System Error:', e);
-        // Debugging info for the user
-        const keyInfo = `Key: ${key.substring(0, 6)}...${key.substring(key.length - 4)} (Len: ${key.length})`;
-        alert(`❌ Erro do Celular (WebKit):\n${e.message}\n\n${keyInfo}\n\nO iPhone bloqueou a saída da informação. Verifique se você está em uma Wi-Fi restrita ou se há um VPN/Relé Privado ativo.`);
+        const keyInfo = `Key: ${key.substring(0, 5)}... (Len: ${key.length})`;
+        alert(`❌ Erro WebKit: ${e.message}\n\n${keyInfo}\n\nSOLUÇÃO (iOS):\n1. Desative VPN/AdBlock.\n2. Verifique se o Relé Privado (iCloud) está ON.\n3. Se persistir, use o botão 'Limpar Tudo' nos ajustes.`);
     } finally {
         btn.innerText = 'Testar Conexão';
     }
