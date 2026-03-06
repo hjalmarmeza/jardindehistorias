@@ -12,7 +12,7 @@ const state = {
     selectedVoice: localStorage.getItem('jardim_voice') || 'Google Português'
 };
 
-const VERSION = "1.0.1";
+const VERSION = "1.0.2";
 
 document.addEventListener('DOMContentLoaded', () => initApp());
 
@@ -290,14 +290,12 @@ async function testConnection() {
 
         const res = await fetch(url, {
             method: 'POST',
-            mode: 'cors',
-            credentials: 'omit',
             headers: {
                 'Authorization': `Bearer ${key}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: isGroq ? "llama-3.1-8b-instant" : "deepseek-ai/DeepSeek-V3",
+                model: isGroq ? "llama-3.3-70b-versatile" : "deepseek-ai/DeepSeek-V3",
                 messages: [{ role: "user", content: "Hi" }]
             })
         });
@@ -305,14 +303,14 @@ async function testConnection() {
         if (!res.ok) {
             const errBody = await res.json();
             console.error('❌ Erro da API:', errBody);
-            alert(`Erro ${res.status}: ${JSON.stringify(errBody.error?.message || errBody.error)}`);
+            alert(`⚠️ Resposta da API (${res.status}):\n${errBody.error?.message || JSON.stringify(errBody)}`);
             return;
         }
 
         alert('✅ Conexão Premium Ativa!');
     } catch (e) {
         console.error('❌ Erro de Sistema:', e);
-        alert('❌ Erro de Conexão no Celular. Verifique se o navegador está bloqueando a API ou se há um bloqueador de anúncios ativo.');
+        alert(`❌ Erro de Conexão: ${e.message}\n\nPossíveis causas:\n1. Bloqueador de anúncios (AdBlock) ativo.\n2. Problema na rede do celular.\n3. Chave API incorreta.`);
     } finally {
         btn.innerText = 'Testar Conexão';
     }
@@ -339,11 +337,9 @@ async function translateWord(word) {
 
         const res = await fetch(url, {
             method: 'POST',
-            mode: 'cors',
-            credentials: 'omit',
             headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: isGroq ? "llama-3.1-8b-instant" : "deepseek-ai/DeepSeek-V3",
+                model: isGroq ? "llama-3.3-70b-versatile" : "deepseek-ai/DeepSeek-V3",
                 messages: [
                     { role: "system", content: "Você é um tradutor rápido de português para espanhol. Responda apenas com a tradução da palabra." },
                     { role: "user", content: `Traduza para espanhol a palabra: "${cleanWord}"` }
