@@ -12,7 +12,8 @@ const state = {
     selectedVoice: localStorage.getItem('jardim_voice') || 'Google Português'
 };
 
-const VERSION = "1.0.2";
+const VERSION = "1.0.3";
+let updateAttempted = sessionStorage.getItem('jardim_update_tried') === 'true';
 
 document.addEventListener('DOMContentLoaded', () => initApp());
 
@@ -43,14 +44,16 @@ async function checkUpdates() {
             dot.style.background = '#ef4444'; // Rojo (Secret alert)
             console.log('Update available:', data.version);
 
-            // Auto-update after 3 seconds if not reading
-            setTimeout(() => {
-                if (!state.isReading) {
+            // Auto-update after 2 seconds if not reading and not already tried
+            if (!state.isReading && !updateAttempted) {
+                sessionStorage.setItem('jardim_update_tried', 'true');
+                setTimeout(() => {
                     window.location.reload(true);
-                }
-            }, 3000);
+                }, 2000);
+            }
         } else {
             dot.style.background = '#10b981'; // Verde (Up to date)
+            sessionStorage.removeItem('jardim_update_tried'); // Reset guard when success
             console.log('App up to date:', VERSION);
         }
     } catch (e) {
@@ -341,8 +344,8 @@ async function translateWord(word) {
             body: JSON.stringify({
                 model: isGroq ? "llama-3.3-70b-versatile" : "deepseek-ai/DeepSeek-V3",
                 messages: [
-                    { role: "system", content: "Você é um tradutor rápido de português para espanhol. Responda apenas com a tradução da palabra." },
-                    { role: "user", content: `Traduza para espanhol a palabra: "${cleanWord}"` }
+                    { role: "system", content: "Você é um tradutor rápido de português para espanhol. Responda apenas com a tradução da palavra." },
+                    { role: "user", content: `Traduza para espanhol a palavra: "${cleanWord}"` }
                 ],
                 temperature: 0.3
             })
