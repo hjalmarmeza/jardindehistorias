@@ -12,7 +12,7 @@ const state = {
     selectedVoice: localStorage.getItem('jardim_voice') || 'Google Português'
 };
 
-const VERSION = "1.0.4";
+const VERSION = "1.0.5";
 
 document.addEventListener('DOMContentLoaded', () => initApp());
 
@@ -313,7 +313,7 @@ async function testConnection() {
         alert('✅ Conexão Premium Ativa!');
     } catch (e) {
         console.error('❌ Erro de Sistema:', e);
-        alert(`❌ Erro de Conexão: ${e.message}\n\nPossíveis causas:\n1. Bloqueador de anúncios (AdBlock) ativo.\n2. Problema na rede do celular.\n3. Chave API incorreta.`);
+        alert(`❌ Erro: ${e.message}\n\nNo iPhone, isso ocorre por:\n1. Bloqueador de anúncios ativado.\n2. "Relé Privado" (iCloud Private Relay) bloqueando a API.\n3. Falta de permissão de dados móviles.`);
     } finally {
         btn.innerText = 'Testar Conexão';
     }
