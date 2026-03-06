@@ -228,7 +228,7 @@ function saveSettings() {
 
 async function testConnection() {
     const btn = document.getElementById('testConnection');
-    const key = document.getElementById('apiKey').value.trim();
+    const key = document.getElementById('apiKey').value.trim().replace(/^["']|["']$/g, '');
     if (!key) return;
     btn.innerText = 'Testando...';
     try {
@@ -236,8 +236,15 @@ async function testConnection() {
         const url = isGroq ? 'https://api.groq.com/openai/v1/chat/completions' : 'https://api.siliconflow.cn/v1/chat/completions';
         const res = await fetch(url, {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ model: isGroq ? "llama-3.3-70b-versatile" : "deepseek-ai/DeepSeek-V3", messages: [{ role: "user", content: "Hi" }], max_tokens: 5 })
+            headers: {
+                'Authorization': `Bearer ${key}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                model: isGroq ? "llama-3.3-70b-versatile" : "deepseek-ai/DeepSeek-V3",
+                messages: [{ role: "user", content: "Hello" }]
+            })
         });
         alert(res.ok ? '✅ Conexão Premium Ativa!' : '❌ Falha na conexão.');
     } catch (e) { alert('❌ Erro de rede.'); }
