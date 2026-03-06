@@ -12,8 +12,7 @@ const state = {
     selectedVoice: localStorage.getItem('jardim_voice') || 'Google Português'
 };
 
-const VERSION = "1.0.3";
-let updateAttempted = sessionStorage.getItem('jardim_update_tried') === 'true';
+const VERSION = "1.0.4";
 
 document.addEventListener('DOMContentLoaded', () => initApp());
 
@@ -40,21 +39,22 @@ async function checkUpdates() {
         const data = await res.json();
 
         if (data.version !== VERSION) {
-            // New version available!
-            dot.style.background = '#ef4444'; // Rojo (Secret alert)
-            console.log('Update available:', data.version);
+            // New version detected
+            dot.style.background = '#ef4444'; // Red (Update available)
 
-            // Auto-update after 2 seconds if not reading and not already tried
-            if (!state.isReading && !updateAttempted) {
-                sessionStorage.setItem('jardim_update_tried', 'true');
-                setTimeout(() => {
-                    window.location.reload(true);
-                }, 2000);
+            // Auto-update logic with cooldown to prevent loops
+            const lastReload = parseInt(localStorage.getItem('jardim_last_auto_reload') || '0');
+            const now = Date.now();
+            const COOL_DOWN = 180000; // 3 minutes cooldown
+
+            if (!state.isReading && (now - lastReload > COOL_DOWN)) {
+                console.log('✨ Auto-update: Refreshing to version', data.version);
+                localStorage.setItem('jardim_last_auto_reload', now.toString());
+                setTimeout(() => window.location.reload(true), 1000);
             }
         } else {
-            dot.style.background = '#10b981'; // Verde (Up to date)
-            sessionStorage.removeItem('jardim_update_tried'); // Reset guard when success
-            console.log('App up to date:', VERSION);
+            dot.style.background = '#10b981'; // Green (Up to date)
+            console.log('✅ Jardím de Histórias:', VERSION);
         }
     } catch (e) {
         console.warn('Update check failed:', e);
