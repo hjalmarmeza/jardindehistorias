@@ -81,6 +81,7 @@ h3,
     border-radius: 50%;
     overflow: hidden;
     border: 1.5px solid var(--accent-emerald);
+    background: #000;
 }
 
 .header-logo {
@@ -430,6 +431,7 @@ h3,
     box-shadow: 0 0 60px rgba(16, 185, 129, 0.3);
     position: relative;
     animation: pulseLogo 3s infinite ease-in-out;
+    background: #000;
 }
 
 .logo-wrapper::after {
