@@ -114,8 +114,8 @@ async function startStoryProcess(category) {
 
 async function fetchStoryFromIA(category) {
     let key = (localStorage.getItem('jardim_api_key') || '').trim();
-    // Extreme cleaning: remove quotes, spaces, newlines from everywhere
-    key = key.replace(/["'\s\n\r]/g, '');
+    // Ultra-aggressive cleaning: only allow printable ASCII characters (no spaces, quotes or specials)
+    key = key.replace(/[^\x21-\x7E]/g, '');
 
     if (!key) throw new Error('API Key missing');
 
@@ -223,8 +223,8 @@ function updateUIPlayback(active) {
 
 function saveSettings() {
     let keyInput = document.getElementById('apiKey').value.trim();
-    // Aggressive cleaning
-    let key = keyInput.replace(/["'\s\n\r]/g, '');
+    // Ultra-aggressive cleaning
+    let key = keyInput.replace(/[^\x21-\x7E]/g, '');
 
     state.apiKey = key;
     state.selectedVoice = document.getElementById('voiceSelect').value;
@@ -241,7 +241,7 @@ function saveSettings() {
 async function testConnection() {
     const btn = document.getElementById('testConnection');
     let keyInput = document.getElementById('apiKey').value.trim();
-    let key = keyInput.replace(/["'\s\n\r]/g, '');
+    let key = keyInput.replace(/[^\x21-\x7E]/g, '');
 
     if (!key) {
         alert('Coloque uma chave primeiro!');
@@ -253,18 +253,16 @@ async function testConnection() {
         const isGroq = key.startsWith('gsk_');
         const url = isGroq ? 'https://api.groq.com/openai/v1/chat/completions' : 'https://api.siliconflow.cn/v1/chat/completions';
 
-        console.log('--- TESTANDO CONEXÃO ---');
-        console.log('Provider:', isGroq ? 'Groq' : 'SiliconFlow');
-        console.log('Endpoint:', url);
-
         const res = await fetch(url, {
             method: 'POST',
+            mode: 'cors',
+            credentials: 'omit',
             headers: {
                 'Authorization': `Bearer ${key}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: isGroq ? "llama-3.3-70b-versatile" : "deepseek-ai/DeepSeek-V3",
+                model: isGroq ? "llama-3.1-8b-instant" : "deepseek-ai/DeepSeek-V3",
                 messages: [{ role: "user", content: "Hi" }]
             })
         });
@@ -279,7 +277,7 @@ async function testConnection() {
         alert('✅ Conexão Premium Ativa!');
     } catch (e) {
         console.error('❌ Erro de Sistema:', e);
-        alert('❌ Erro de rede ou CORS. Verifique o console.');
+        alert('❌ Erro de Conexão no Celular. Verifique se o navegador está bloqueando a API ou se há um bloqueador de anúncios ativo.');
     } finally {
         btn.innerText = 'Testar Conexão';
     }
@@ -290,7 +288,7 @@ async function translateWord(word) {
     const cleanWord = word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "").trim();
     if (!cleanWord || cleanWord.length < 2) return;
 
-    let key = (localStorage.getItem('jardim_api_key') || '').trim().replace(/["'\s\n\r]/g, '');
+    let key = (localStorage.getItem('jardim_api_key') || '').trim().replace(/[^\x21-\x7E]/g, '');
     if (!key) {
         alert('Por favor, configure sua chave API nos ajustes primeiro.');
         return;
@@ -306,9 +304,11 @@ async function translateWord(word) {
 
         const res = await fetch(url, {
             method: 'POST',
+            mode: 'cors',
+            credentials: 'omit',
             headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: isGroq ? "llama-3.3-70b-versatile" : "deepseek-ai/DeepSeek-V3",
+                model: isGroq ? "llama-3.1-8b-instant" : "deepseek-ai/DeepSeek-V3",
                 messages: [
                     { role: "system", content: "Você é um tradutor rápido de português para espanhol. Responda apenas com a tradução da palabra." },
                     { role: "user", content: `Traduza para espanhol a palabra: "${cleanWord}"` }
