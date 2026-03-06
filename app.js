@@ -113,7 +113,12 @@ async function startStoryProcess(category) {
 }
 
 async function fetchStoryFromIA(category) {
-    const key = localStorage.getItem('jardim_api_key')?.trim() || '';
+    let key = (localStorage.getItem('jardim_api_key') || '').trim();
+    // Extreme cleaning: remove quotes, spaces, newlines from everywhere
+    key = key.replace(/["'\s\n\r]/g, '');
+
+    if (!key) throw new Error('API Key missing');
+
     const isGroq = key.startsWith('gsk_');
     const url = isGroq ? 'https://api.groq.com/openai/v1/chat/completions' : 'https://api.siliconflow.cn/v1/chat/completions';
 
@@ -217,38 +222,67 @@ function updateUIPlayback(active) {
 }
 
 function saveSettings() {
-    let key = document.getElementById('apiKey').value.trim().replace(/^["']|["']$/g, '');
+    let keyInput = document.getElementById('apiKey').value.trim();
+    // Aggressive cleaning
+    let key = keyInput.replace(/["'\s\n\r]/g, '');
+
     state.apiKey = key;
     state.selectedVoice = document.getElementById('voiceSelect').value;
     localStorage.setItem('jardim_api_key', key);
     localStorage.setItem('jardim_voice', state.selectedVoice);
+
+    // Update input field to show cleaned key
+    document.getElementById('apiKey').value = key;
+
     toggleModal('settingsModal', false);
-    alert('Configurações aplicadas!');
+    alert('✨ Ajustes Salvos!');
 }
 
 async function testConnection() {
     const btn = document.getElementById('testConnection');
-    const key = document.getElementById('apiKey').value.trim().replace(/^["']|["']$/g, '');
-    if (!key) return;
-    btn.innerText = 'Testando...';
+    let keyInput = document.getElementById('apiKey').value.trim();
+    let key = keyInput.replace(/["'\s\n\r]/g, '');
+
+    if (!key) {
+        alert('Coloque uma chave primeiro!');
+        return;
+    }
+
+    btn.innerText = '🕒 Testando...';
     try {
         const isGroq = key.startsWith('gsk_');
         const url = isGroq ? 'https://api.groq.com/openai/v1/chat/completions' : 'https://api.siliconflow.cn/v1/chat/completions';
+
+        console.log('--- TESTANDO CONEXÃO ---');
+        console.log('Provider:', isGroq ? 'Groq' : 'SiliconFlow');
+        console.log('Endpoint:', url);
+
         const res = await fetch(url, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${key}`,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 model: isGroq ? "llama-3.3-70b-versatile" : "deepseek-ai/DeepSeek-V3",
-                messages: [{ role: "user", content: "Hello" }]
+                messages: [{ role: "user", content: "Hi" }]
             })
         });
-        alert(res.ok ? '✅ Conexão Premium Ativa!' : '❌ Falha na conexão.');
-    } catch (e) { alert('❌ Erro de rede.'); }
-    finally { btn.innerText = 'Testar Conexão'; }
+
+        if (!res.ok) {
+            const errBody = await res.json();
+            console.error('❌ Erro da API:', errBody);
+            alert(`Erro ${res.status}: ${JSON.stringify(errBody.error?.message || errBody.error)}`);
+            return;
+        }
+
+        alert('✅ Conexão Premium Ativa!');
+    } catch (e) {
+        console.error('❌ Erro de Sistema:', e);
+        alert('❌ Erro de rede ou CORS. Verifique o console.');
+    } finally {
+        btn.innerText = 'Testar Conexão';
+    }
 }
 
 async function translateWord(word) {
@@ -256,7 +290,7 @@ async function translateWord(word) {
     const cleanWord = word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "").trim();
     if (!cleanWord || cleanWord.length < 2) return;
 
-    const key = localStorage.getItem('jardim_api_key')?.trim();
+    let key = (localStorage.getItem('jardim_api_key') || '').trim().replace(/["'\s\n\r]/g, '');
     if (!key) {
         alert('Por favor, configure sua chave API nos ajustes primeiro.');
         return;
@@ -276,8 +310,8 @@ async function translateWord(word) {
             body: JSON.stringify({
                 model: isGroq ? "llama-3.3-70b-versatile" : "deepseek-ai/DeepSeek-V3",
                 messages: [
-                    { role: "system", content: "Você é um tradutor rápido de português para espanhol. Responda apenas com a tradução da palavra." },
-                    { role: "user", content: `Traduza para espanhol a palavra: "${cleanWord}"` }
+                    { role: "system", content: "Você é um tradutor rápido de português para espanhol. Responda apenas com a tradução da palabra." },
+                    { role: "user", content: `Traduza para espanhol a palabra: "${cleanWord}"` }
                 ],
                 temperature: 0.3
             })
