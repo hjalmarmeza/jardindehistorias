@@ -12,7 +12,7 @@ const state = {
     selectedVoice: localStorage.getItem('jardim_voice') || 'Google Português'
 };
 
-const VERSION = "1.0.6";
+const VERSION = "1.0.7";
 
 document.addEventListener('DOMContentLoaded', () => initApp());
 
@@ -291,31 +291,32 @@ async function testConnection() {
         const isGroq = key.startsWith('gsk_');
         const url = isGroq ? 'https://api.groq.com/openai/v1/chat/completions' : 'https://api.siliconflow.cn/v1/chat/completions';
 
-        // Final attempt at Safari compatibility: Cache busting + simpler model
-        const res = await fetch(url + `?nocache=${Date.now()}`, {
+        // Back to basics: Standard POST without extra headers or cache-busting
+        const res = await fetch(url, {
             method: 'POST',
-            cache: 'no-store',
             headers: {
-                'Authorization': `Bearer ${key.trim()}`,
+                'Authorization': `Bearer ${key}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: isGroq ? "llama-3.1-8b-instant" : "deepseek-ai/DeepSeek-V3",
+                model: isGroq ? "llama-3.3-70b-versatile" : "deepseek-ai/DeepSeek-V3",
                 messages: [{ role: "user", content: "hi" }]
             })
         });
 
         if (!res.ok) {
             const errBody = await res.json();
-            console.error('❌ Erro da API:', errBody);
-            alert(`⚠️ Resposta da API (${res.status}):\n${errBody.error?.message || JSON.stringify(errBody)}`);
+            console.error('❌ API Error:', errBody);
+            alert(`⚠️ API Error (${res.status}):\n${errBody.error?.message || JSON.stringify(errBody)}`);
             return;
         }
 
         alert('✅ Conexão Premium Ativa!');
     } catch (e) {
-        console.error('❌ Erro de Sistema:', e);
-        alert(`❌ Erro: ${e.message}\n\nSOLUÇÃO PARA IPHONE:\n1. Desative "AdBlock" / "AdGuard" para este site.\n2. Desative o "Relé Privado" do iCloud en Ajustes.\n3. O Safari pode estar bloqueando a API. Tente usar o Google Chrome no celular.`);
+        console.error('❌ System Error:', e);
+        // Debugging info for the user
+        const keyInfo = `Key: ${key.substring(0, 6)}...${key.substring(key.length - 4)} (Len: ${key.length})`;
+        alert(`❌ Erro do Celular (WebKit):\n${e.message}\n\n${keyInfo}\n\nO iPhone bloqueou a saída da informação. Verifique se você está em uma Wi-Fi restrita ou se há um VPN/Relé Privado ativo.`);
     } finally {
         btn.innerText = 'Testar Conexão';
     }
