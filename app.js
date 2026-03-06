@@ -12,7 +12,7 @@ const state = {
     selectedVoice: localStorage.getItem('jardim_voice') || 'Google Português'
 };
 
-const VERSION = "1.0.8";
+const VERSION = "1.0.9";
 
 document.addEventListener('DOMContentLoaded', () => initApp());
 
@@ -123,8 +123,12 @@ function setupEventListeners() {
         if (e.target.tagName === 'SPAN') translateWord(e.target.innerText);
     });
 
-    document.getElementById('saveSettings').addEventListener('click', saveSettings);
-    document.getElementById('testConnection').addEventListener('click', testConnection);
+    // Safety check for settings buttons
+    const saveBtn = document.getElementById('saveSettings');
+    if (saveBtn) saveBtn.addEventListener('click', saveSettings);
+
+    const testBtn = document.getElementById('testConnection');
+    if (testBtn) testBtn.addEventListener('click', testConnection);
 }
 
 async function startStoryProcess(category) {
