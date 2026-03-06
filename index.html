@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Jardim de Histórias — Contos Mágicos</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="apple-touch-icon" href="icon.png">
+    <meta name="theme-color" content="#030712">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;900&family=Inter:wght@400;500;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <!-- Aura Ambiental Dynamic -->
+    <div class="ambient-glow" id="ambientGlow"></div>
+
+    <!-- Splash Screen -->
+    <div id="splashScreen" class="splash-screen">
+        <div class="splash-content">
+            <div class="logo-wrapper">
+                <img src="icono2.webp" alt="Logo Jardim de Histórias" class="splash-logo">
+            </div>
+            <h1 class="splash-title">Jardim de Histórias</h1>
+            <button id="enterApp" class="enter-btn">ENTRAR NO JARDIM</button>
+            <div class="loader"></div>
+        </div>
+    </div>
+
+    <main class="app-interface hidden" id="mainApp">
+
+        <!-- Premium Header -->
+        <header class="app-header glass">
+            <div class="header-left">
+                <div class="logo-container">
+                    <img src="icon.png" alt="Logo" class="header-logo">
+                </div>
+                <div class="header-text">
+                    <h1>Jardim de Histórias</h1>
+                    <p>Contos Mágicos em Português</p>
+                </div>
+            </div>
+            <button id="settingsBtn" class="settings-trigger">
+                <i class="ph-bold ph-gear"></i>
+            </button>
+        </header>
+
+        <!-- Home Section -->
+        <section class="garden-section" id="gardenSelector">
+            <div class="garden-intro">
+                <h2>Escolha sua flor mágica</h2>
+            </div>
+            <div class="garden-scroll-area">
+                <div class="flower-grid">
+                    <!-- Rosa -->
+                    <button class="flower-card rosa" data-category="rosa">
+                        <div class="flower-icon">🌹</div>
+                        <div class="flower-info">
+                            <span class="flower-desc">Vida Cotidiana</span>
+                        </div>
+                    </button>
+
+                    <!-- Lótus -->
+                    <button class="flower-card lotus" data-category="lotus">
+                        <div class="flower-icon">🪷</div>
+                        <div class="flower-info">
+                            <span class="flower-desc">Fábulas e Sabedoria</span>
+                        </div>
+                    </button>
+
+                    <!-- Girassol -->
+                    <button class="flower-card girassol" data-category="girassol">
+                        <div class="flower-icon">🌻</div>
+                        <div class="flower-info">
+                            <span class="flower-desc">Aventuras Alegres</span>
+                        </div>
+                    </button>
+
+                    <!-- Lavanda -->
+                    <button class="flower-card lavanda" data-category="lavanda">
+                        <div class="flower-icon">🪻</div>
+                        <div class="flower-info">
+                            <span class="flower-desc">Contos Relaxantes</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="garden-footer">
+                <button id="ctaReadNow" class="cta-btn">GERAR CONTO MÁGICO</button>
+            </div>
+        </section>
+
+        <!-- Reading Section (Hidden by default) -->
+        <section class="reading-section hidden" id="readingArea">
+            <div class="reading-header">
+                <button id="backToGarden" class="premium-back-btn">
+                    <i class="ph ph-arrow-left"></i>
+                    <span>Voltar ao Jardim</span>
+                </button>
+                <div id="ambientGlow" class="ambient-glow"></div>
+            </div>
+            <div class="story-container glass">
+                <h2 id="storyTitle" class="story-title">Lendo a alma das flores...</h2>
+                <div id="storyLoader" class="premium-loader hidden">
+                    <div class="loader-spark"></div>
+                </div>
+                <div id="storyContent" class="story-content">
+                    <!-- Text pulses here -->
+                </div>
+            </div>
+
+            <!-- Floating Player Controls -->
+            <div class="player-controls-wrap">
+                <div class="player-bar glass">
+                    <div class="player-status">
+                        <span id="voiceStatus">Pronto</span>
+                    </div>
+                    <div class="player-actions">
+                        <button id="translateBtn" class="action-btn" title="Traduzir palavra selecionada">
+                            <i class="ph ph-globe"></i>
+                        </button>
+                        <button id="playBtn" class="action-btn main-play">
+                            <i class="ph-fill ph-play"></i>
+                        </button>
+                        <button id="stopBtn" class="action-btn hidden" title="Parar leitura">
+                            <i class="ph-fill ph-stop"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Settings Modal (Full Screen Deep Glass) -->
+    <div id="settingsModal" class="modal-overlay hidden">
+        <div class="modal-container glass-deep">
+            <header class="modal-header">
+                <h3>Ajustes Mágicos</h3>
+                <button class="close-modal"><i class="ph ph-x"></i></button>
+            </header>
+
+            <div class="modal-body">
+                <div class="form-group-premium">
+                    <label><i class="ph ph-microphone-stage"></i> Voz do Narrador</label>
+                    <select id="voiceSelect" class="premium-select"></select>
+                </div>
+
+                <div class="form-group-premium">
+                    <label><i class="ph ph-key"></i> Chave de API (Groq)</label>
+                    <div class="input-premium-wrapper">
+                        <input type="password" id="apiKey" placeholder="gsk_...">
+                    </div>
+                </div>
+
+                <div class="modal-actions-premium">
+                    <button id="testConnection" class="btn-test">
+                        <i class="ph ph-lightning"></i> Testar Conexão
+                    </button>
+                    <button id="saveSettings" class="btn-save">
+                        <i class="ph ph-check"></i> Salvar Ajustes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="app.js"></script>
+</body>
+
+</html>
