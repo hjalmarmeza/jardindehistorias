@@ -3,7 +3,6 @@
  */
 
 const state = {
-    apiKey: localStorage.getItem('jardim_api_key') || '',
     currentCategory: '',
     isReading: false,
     synth: window.speechSynthesis,
@@ -12,7 +11,7 @@ const state = {
     selectedVoice: localStorage.getItem('jardim_voice') || 'Google Português'
 };
 
-const VERSION = "1.2.2";
+const VERSION = "1.3.0";
 const GROQ_PROXY = "https://tiny-art-d004jardim-proxy.hjalmar-meza.workers.dev";
 
 document.addEventListener('DOMContentLoaded', () => initApp());
@@ -23,11 +22,10 @@ function initApp() {
         state.synth.onvoiceschanged = loadVoices;
     }
     setupEventListeners();
-    document.getElementById('apiKey').value = state.apiKey;
 
     // Start secret update checker
     checkUpdates();
-    setInterval(checkUpdates, 600000); // Check every 10 minutes
+    setInterval(checkUpdates, 600000);
 }
 
 async function checkUpdates() {
@@ -133,10 +131,6 @@ function setupEventListeners() {
 }
 
 async function startStoryProcess(category) {
-    if (!state.apiKey) {
-        toggleModal('settingsModal', true);
-        return;
-    }
     state.currentCategory = category;
     document.getElementById('gardenSelector').classList.add('hidden');
     document.getElementById('readingArea').classList.remove('hidden');
@@ -157,18 +151,6 @@ async function startStoryProcess(category) {
 }
 
 async function fetchStoryFromIA(category) {
-    let key = (localStorage.getItem('jardim_api_key') || '').trim();
-    // Ultra-aggressive cleaning: only allow printable ASCII characters (no spaces, quotes or specials)
-    key = key.replace(/[^\x21-\x7E]/g, '');
-
-    if (!key) throw new Error('API Key missing');
-
-    const isGroq = key.startsWith('gsk_');
-    const url = isGroq ? GROQ_PROXY : 'https://api.siliconflow.cn/v1/chat/completions';
-
-    // Using 8b model for mobile stability and speed
-    const model = isGroq ? "llama-3.1-8b-instant" : "deepseek-ai/DeepSeek-V3";
-
     const prompts = {
         rosa: "Vida cotidiana", lotus: "Fábulas de sabedoria", girassol: "Aventuras alegres", lavanda: "Contos relaxantes"
     };
@@ -178,11 +160,11 @@ async function fetchStoryFromIA(category) {
     A história deve ser rica, detalhada e envolvente para durar vários minutos de leitura.
     Formato JSON: {"titulo": "Título", "historia": "Texto longo aqui..."}`;
 
-    const response = await fetch(url, {
+    const response = await fetch(GROQ_PROXY, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            model: model, // Changed to stable model
+            model: "llama-3.1-8b-instant",
             messages: [{ role: "system", content: sysPrompt }, { role: "user", content: prompts[category] }],
             response_format: { type: "json_object" },
             temperature: 0.8
@@ -274,18 +256,8 @@ function updateUIPlayback(active) {
 }
 
 function saveSettings() {
-    let keyInput = document.getElementById('apiKey').value.trim();
-    // Ultra-aggressive cleaning
-    let key = keyInput.replace(/[^\x21-\x7E]/g, '');
-
-    state.apiKey = key;
     state.selectedVoice = document.getElementById('voiceSelect').value;
-    localStorage.setItem('jardim_api_key', key);
     localStorage.setItem('jardim_voice', state.selectedVoice);
-
-    // Update input field to show cleaned key
-    document.getElementById('apiKey').value = key;
-
     toggleModal('settingsModal', false);
     showToast('✨ Ajustes Salvos!', 'success');
 }
@@ -348,29 +320,19 @@ async function testConnection() {
 }
 
 async function translateWord(word) {
-    // Basic cleaning: remove punctuation
     const cleanWord = word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "").trim();
     if (!cleanWord || cleanWord.length < 2) return;
-
-    let key = (localStorage.getItem('jardim_api_key') || '').trim().replace(/[^\x21-\x7E]/g, '');
-    if (!key) {
-        showTranslationPopup(cleanWord, '⚙️ Configure a chave API nos ajustes');
-        return;
-    }
 
     const btn = document.getElementById('translateBtn');
     const originalIcon = btn.innerHTML;
     btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i>';
 
     try {
-        const isGroq = key.startsWith('gsk_');
-        const url = isGroq ? GROQ_PROXY : 'https://api.siliconflow.cn/v1/chat/completions';
-
-        const res = await fetch(url, {
+        const res = await fetch(GROQ_PROXY, {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: isGroq ? "llama-3.1-8b-instant" : "deepseek-ai/DeepSeek-V3",
+                model: "llama-3.1-8b-instant",
                 messages: [
                     { role: "system", content: "Você é um tradutor rápido de português para espanhol. Responda apenas com a tradução da palavra, sem explicações." },
                     { role: "user", content: `Traduza para espanhol a palavra: "${cleanWord}"` }
@@ -379,11 +341,7 @@ async function translateWord(word) {
             })
         });
 
-        if (!res.ok) {
-            const errorData = await res.json();
-            console.error('API Error details:', errorData);
-            throw new Error(`API Error ${res.status}`);
-        }
+        if (!res.ok) throw new Error(`API Error ${res.status}`);
 
         const data = await res.json();
         const translation = data.choices[0].message.content.trim();
