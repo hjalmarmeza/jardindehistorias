@@ -189,6 +189,19 @@
         </div>
     </div>
 
+    <!-- Custom Translation Popup -->
+    <div id="translationPopup" class="translation-popup hidden">
+        <button class="translation-close" onclick="document.getElementById('translationPopup').classList.add('hidden')">
+            <i class="ph ph-x"></i>
+        </button>
+        <div class="translation-word" id="translationOriginalWord"></div>
+        <div class="translation-arrow">↓</div>
+        <div class="translation-result" id="translationResultText"></div>
+    </div>
+    <div id="translationOverlay" class="translation-overlay hidden"
+        onclick="document.getElementById('translationPopup').classList.add('hidden'); document.getElementById('translationOverlay').classList.add('hidden')">
+    </div>
+
     <!-- Scripts -->
     <script src="app.js"></script>
 </body>

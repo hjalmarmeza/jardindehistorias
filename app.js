@@ -12,7 +12,7 @@ const state = {
     selectedVoice: localStorage.getItem('jardim_voice') || 'Google Português'
 };
 
-const VERSION = "1.2.0";
+const VERSION = "1.2.1";
 const GROQ_PROXY = "https://tiny-art-d004jardim-proxy.hjalmar-meza.workers.dev";
 
 document.addEventListener('DOMContentLoaded', () => initApp());
@@ -354,7 +354,7 @@ async function translateWord(word) {
 
     let key = (localStorage.getItem('jardim_api_key') || '').trim().replace(/[^\x21-\x7E]/g, '');
     if (!key) {
-        alert('Por favor, configure sua chave API nos ajustes primeiro.');
+        showTranslationPopup(cleanWord, '⚙️ Configure a chave API nos ajustes');
         return;
     }
 
@@ -370,9 +370,9 @@ async function translateWord(word) {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: isGroq ? "llama-3.1-8b-instant" : "deepseek-ai/DeepSeek-V3", // Using stable model
+                model: isGroq ? "llama-3.1-8b-instant" : "deepseek-ai/DeepSeek-V3",
                 messages: [
-                    { role: "system", content: "Você é um tradutor rápido de português para espanhol. Responda apenas com a tradução da palavra." },
+                    { role: "system", content: "Você é um tradutor rápido de português para espanhol. Responda apenas com a tradução da palavra, sem explicações." },
                     { role: "user", content: `Traduza para espanhol a palavra: "${cleanWord}"` }
                 ],
                 temperature: 0.3
@@ -387,15 +387,25 @@ async function translateWord(word) {
 
         const data = await res.json();
         const translation = data.choices[0].message.content.trim();
-
-        // Premium looking alert using a custom method if possible, otherwise native alert
-        alert(`✨ A palavra "${cleanWord}" significa:\n\n👉 ${translation}`);
+        showTranslationPopup(cleanWord, translation);
     } catch (e) {
         console.error('Erro na tradução:', e);
-        alert('Não consegui traduzir agora. Verifique sua conexão.');
+        showTranslationPopup(cleanWord, '❌ Erro ao traduzir');
     } finally {
         btn.innerHTML = originalIcon;
     }
+}
+
+function showTranslationPopup(originalWord, translation) {
+    document.getElementById('translationOriginalWord').innerText = originalWord;
+    document.getElementById('translationResultText').innerText = translation;
+    document.getElementById('translationPopup').classList.remove('hidden');
+    document.getElementById('translationOverlay').classList.remove('hidden');
+    // Auto-close after 5 seconds
+    setTimeout(() => {
+        document.getElementById('translationPopup').classList.add('hidden');
+        document.getElementById('translationOverlay').classList.add('hidden');
+    }, 5000);
 }
 
 function toggleModal(id, show) {

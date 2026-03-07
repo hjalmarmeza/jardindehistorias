@@ -525,3 +525,85 @@ h3,
         transform: translateY(0);
     }
 }
+
+/* ── Custom Translation Popup ── */
+.translation-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    background: transparent;
+}
+
+.translation-popup {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    background: rgba(10, 15, 40, 0.96);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 20px;
+    padding: 20px 24px 16px;
+    min-width: 200px;
+    max-width: 280px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(139, 92, 246, 0.15);
+    animation: popupIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.translation-close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.translation-close:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+}
+
+.translation-word {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+}
+
+.translation-arrow {
+    font-size: 1rem;
+    color: var(--accent-violet);
+    margin: 4px 0;
+}
+
+.translation-result {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: white;
+    letter-spacing: -0.02em;
+}
+
+@keyframes popupIn {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) scale(0.85);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(-50%) scale(1);
+    }
+}
