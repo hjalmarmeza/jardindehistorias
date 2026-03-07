@@ -202,6 +202,24 @@
         onclick="document.getElementById('translationPopup').classList.add('hidden'); document.getElementById('translationOverlay').classList.add('hidden')">
     </div>
 
+    <!-- Premium Toast Notification -->
+    <div id="toastNotif" class="toast-notif hidden">
+        <i class="ph ph-check-circle" id="toastIcon"></i>
+        <span id="toastMsg"></span>
+    </div>
+
+    <!-- Premium Confirm Dialog -->
+    <div id="confirmOverlay" class="confirm-overlay hidden">
+        <div class="confirm-box">
+            <div class="confirm-icon"><i class="ph ph-warning" id="confirmIcon"></i></div>
+            <p class="confirm-msg" id="confirmMsg"></p>
+            <div class="confirm-actions">
+                <button class="confirm-cancel" id="confirmCancel">Cancelar</button>
+                <button class="confirm-ok" id="confirmOk">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="app.js"></script>
 </body>

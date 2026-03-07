@@ -12,7 +12,7 @@ const state = {
     selectedVoice: localStorage.getItem('jardim_voice') || 'Google Português'
 };
 
-const VERSION = "1.2.1";
+const VERSION = "1.2.2";
 const GROQ_PROXY = "https://tiny-art-d004jardim-proxy.hjalmar-meza.workers.dev";
 
 document.addEventListener('DOMContentLoaded', () => initApp());
@@ -103,7 +103,7 @@ function setupEventListeners() {
     document.getElementById('settingsBtn').addEventListener('click', () => toggleModal('settingsModal', true));
 
     document.getElementById('translateBtn').addEventListener('click', () => {
-        alert('🌐 Para traduzir, basta clicar em qualquer palavra do texto enquanto lê!');
+        showToast('Clique em qualquer palavra do texto para traduzir!', 'info');
     });
 
     document.querySelectorAll('.close-modal').forEach(btn => {
@@ -116,7 +116,7 @@ function setupEventListeners() {
             toggleModal('settingsModal', false); // Force close settings
             startStoryProcess(selected.dataset.category);
         } else {
-            alert('Escolha uma flor primeiro!');
+            showToast('Escolha uma flor primeiro!', 'info');
         }
     });
 
@@ -149,7 +149,7 @@ async function startStoryProcess(category) {
         displayStory(story);
     } catch (e) {
         console.error('Erro no processo:', e);
-        alert(`O jardim encontrou uma névoa...\n\nMotivo: ${e.message}\n\nTente novamente ou verifique sua conexão.`);
+        showToast(`O jardim encontrou uma névoa... ${e.message}`, 'error');
         backToGarden();
     } finally {
         document.getElementById('storyLoader').classList.add('hidden');
@@ -287,15 +287,15 @@ function saveSettings() {
     document.getElementById('apiKey').value = key;
 
     toggleModal('settingsModal', false);
-    alert('✨ Ajustes Salvos!');
+    showToast('✨ Ajustes Salvos!', 'success');
 }
 
 function clearAllData() {
-    if (confirm('Isso apagará sua chave e resetará a app. Confirmar?')) {
+    showConfirm('Isso apagará sua chave API e reiniciará a app.', () => {
         localStorage.clear();
         sessionStorage.clear();
         window.location.reload(true);
-    }
+    });
 }
 
 async function testConnection() {
@@ -304,7 +304,7 @@ async function testConnection() {
     let key = keyInput.replace(/[^\x21-\x7E]/g, '');
 
     if (!key) {
-        alert('Coloque uma chave primeiro!');
+        showToast('Coloque uma chave API primeiro!', 'info');
         return;
     }
 
@@ -332,16 +332,16 @@ async function testConnection() {
         if (!res.ok) {
             const errBody = await res.json();
             console.error('❌ API Error:', errBody);
-            alert(`⚠️ Resposta da API (${res.status}):\n${errBody.error?.message || JSON.stringify(errBody)}`);
+            showToast(`Erro ${res.status}: ${errBody.error?.message || 'API Error'}`, 'error');
             return;
         }
 
-        alert('✅ Conexão Premium Ativa!');
+        showToast('✅ Conexão Premium Ativa!', 'success');
     } catch (e) {
         console.error('❌ System Error:', e);
         const keyInfo = `Key: ${key.substring(0, 5)}... (Len: ${key.length})`;
         const isOnline = window.navigator.onLine ? "Sim" : "Não";
-        alert(`❌ Erro de Rede (WebKit): ${e.message}\n\nConectado: ${isOnline}\n${keyInfo}\n\nSOLUÇÃO PARA IPHONE:\n1. DESATIVE AdBlock/VPN.\n2. DESATIVE o "Relé Privado" (Privary Relay) no iCloud.\n3. Se estiver no 4G, tente WiFi (o vice-versa).\n4. Use o botão 'Limpar Tudo' e cole a chave novamente.`);
+        showToast('Erro de rede. Verifique VPN/AdBlock ou Private Relay do iCloud.', 'error');
     } finally {
         btn.innerText = 'Testar Conexão';
     }
@@ -410,4 +410,34 @@ function showTranslationPopup(originalWord, translation) {
 
 function toggleModal(id, show) {
     document.getElementById(id).classList.toggle('hidden', !show);
+}
+
+// ── Premium UI Helpers ──
+
+function showToast(msg, type = 'success') {
+    const toast = document.getElementById('toastNotif');
+    const icon = document.getElementById('toastIcon');
+    const text = document.getElementById('toastMsg');
+
+    const icons = { success: 'ph-check-circle', error: 'ph-x-circle', info: 'ph-info' };
+    icon.className = `ph ${icons[type] || 'ph-check-circle'}`;
+    text.innerText = msg;
+    toast.className = `toast-notif toast-${type}`;
+    toast.classList.remove('hidden');
+
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => toast.classList.add('hidden'), 3500);
+}
+
+function showConfirm(msg, onConfirm) {
+    const overlay = document.getElementById('confirmOverlay');
+    document.getElementById('confirmMsg').innerText = msg;
+    overlay.classList.remove('hidden');
+
+    const okBtn = document.getElementById('confirmOk');
+    const cancelBtn = document.getElementById('confirmCancel');
+
+    const close = () => overlay.classList.add('hidden');
+    okBtn.onclick = () => { close(); onConfirm(); };
+    cancelBtn.onclick = close;
 }
