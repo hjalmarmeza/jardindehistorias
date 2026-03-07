@@ -12,7 +12,8 @@ const state = {
     selectedVoice: localStorage.getItem('jardim_voice') || 'Google Português'
 };
 
-const VERSION = "1.1.1";
+const VERSION = "1.2.0";
+const GROQ_PROXY = "https://tiny-art-d004jardim-proxy.hjalmar-meza.workers.dev";
 
 document.addEventListener('DOMContentLoaded', () => initApp());
 
@@ -163,7 +164,7 @@ async function fetchStoryFromIA(category) {
     if (!key) throw new Error('API Key missing');
 
     const isGroq = key.startsWith('gsk_');
-    const url = isGroq ? 'https://api.groq.com/openai/v1/chat/completions' : 'https://api.siliconflow.cn/v1/chat/completions';
+    const url = isGroq ? GROQ_PROXY : 'https://api.siliconflow.cn/v1/chat/completions';
 
     // Using 8b model for mobile stability and speed
     const model = isGroq ? "llama-3.1-8b-instant" : "deepseek-ai/DeepSeek-V3";
@@ -310,7 +311,7 @@ async function testConnection() {
     btn.innerText = '🕒 Testando...';
     try {
         const isGroq = key.startsWith('gsk_');
-        const url = isGroq ? 'https://api.groq.com/openai/v1/chat/completions' : 'https://api.siliconflow.cn/v1/chat/completions';
+        const url = isGroq ? GROQ_PROXY : 'https://api.siliconflow.cn/v1/chat/completions';
 
         // Strategy for iOS stability: Minimal headers + No-Cache + Referrer policy
         const res = await fetch(url, {
@@ -363,7 +364,7 @@ async function translateWord(word) {
 
     try {
         const isGroq = key.startsWith('gsk_');
-        const url = isGroq ? 'https://api.groq.com/openai/v1/chat/completions' : 'https://api.siliconflow.cn/v1/chat/completions';
+        const url = isGroq ? GROQ_PROXY : 'https://api.siliconflow.cn/v1/chat/completions';
 
         const res = await fetch(url, {
             method: 'POST',
