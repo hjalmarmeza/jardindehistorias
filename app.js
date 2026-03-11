@@ -243,9 +243,10 @@ function prepareUtterance(text) {
     state.ttsIndex = 0;
     state.charTracker = 0;
     
-    // Preload first chunk
+    // Set first chunk src and LOAD explicitly
     if (state.ttsQueue.length > 0) {
         state.storyAudio.src = `https://translate.googleapis.com/translate_tts?ie=UTF-8&tl=pt-BR&client=tw-ob&q=${encodeURIComponent(state.ttsQueue[0])}`;
+        state.storyAudio.load();
     }
     updateUIPlayback(false);
 }
@@ -273,10 +274,24 @@ function togglePlayback() {
         document.getElementById('playBtn').innerHTML = '<i class="ph-fill ph-play"></i>';
     } else {
         requestWakeLock();
-        // Fallback or explicit playing of first index if needed
+        
+        // Force reload src if needed on mobile to bypass play restrictions initially
         if (state.storyAudio && state.storyAudio.paused) {
-             state.storyAudio.play().catch(e => console.warn("Play blocked", e));
+             if (!state.storyAudio.src && state.ttsQueue.length > 0) {
+                 state.storyAudio.src = `https://translate.googleapis.com/translate_tts?ie=UTF-8&tl=pt-BR&client=tw-ob&q=${encodeURIComponent(state.ttsQueue[state.ttsIndex])}`;
+             }
+             state.storyAudio.play().catch(e => {
+                 console.warn("Play blocked, attempting reload", e);
+                 state.storyAudio.load();
+                 state.storyAudio.play().catch(err => console.error(err));
+             });
         }
+        
+        // Start silent audio again 
+        if (state.silentAudio && state.silentAudio.paused) {
+            state.silentAudio.play().catch(e => console.warn(e));
+        }
+
         state.isReading = true;
         document.getElementById('playBtn').innerHTML = '<i class="ph-fill ph-pause"></i>';
         updateUIPlayback(true);
