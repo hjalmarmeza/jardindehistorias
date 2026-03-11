@@ -8,7 +8,9 @@ const state = {
     synth: window.speechSynthesis,
     utterance: null,
     voices: [],
-    selectedVoice: localStorage.getItem('jardim_voice') || 'Google Português'
+    selectedVoice: localStorage.getItem('jardim_voice') || 'Google Português',
+    silentAudio: null,
+    wakeLock: null
 };
 
 const VERSION = "1.3.0";
@@ -71,6 +73,16 @@ function loadVoices() {
 }
 
 function setupEventListeners() {
+    // Hack para mantener el JS activo en background (Audio Silencioso)
+    document.body.addEventListener('click', () => {
+        if (!state.silentAudio) {
+            state.silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
+            state.silentAudio.loop = true;
+            state.silentAudio.play().then(() => {
+                state.silentAudio.pause();
+            }).catch(e => console.warn('Silent audio unlock failed', e));
+        }
+    }, { once: true });
     // Dismiss Splash
     const dismissSplash = () => {
         const splash = document.getElementById('splashScreen');
@@ -193,6 +205,7 @@ function displayStory(story) {
     }).join('');
 
     prepareUtterance(story.historia);
+    updateMediaSession(story.titulo);
 }
 
 function prepareUtterance(text) {
@@ -213,8 +226,12 @@ function togglePlayback() {
     if (state.isReading) {
         state.synth.pause();
         state.isReading = false;
+        if (state.silentAudio) state.silentAudio.pause();
+        releaseWakeLock();
         document.getElementById('playBtn').innerHTML = '<i class="ph-fill ph-play"></i>';
     } else {
+        if (state.silentAudio) state.silentAudio.play().catch(e=>console.warn(e));
+        requestWakeLock();
         if (state.synth.paused) state.synth.resume();
         else state.synth.speak(state.utterance);
         state.isReading = true;
@@ -223,6 +240,11 @@ function togglePlayback() {
 }
 
 function stopPlayback() {
+    if (state.silentAudio) {
+        state.silentAudio.pause();
+        state.silentAudio.currentTime = 0;
+    }
+    releaseWakeLock();
     state.synth.cancel();
     state.isReading = false;
     updateUIPlayback(false);
@@ -253,6 +275,12 @@ function updateUIPlayback(active) {
     playBtn.innerHTML = active ? '<i class="ph-fill ph-pause"></i>' : '<i class="ph-fill ph-play"></i>';
     active ? stopBtn.classList.remove('hidden') : stopBtn.classList.add('hidden');
     document.getElementById('voiceStatus').innerText = active ? 'Ouvindo' : 'Pronto';
+    
+    // Safety clear when playback naturally ends
+    if (!active) {
+        if (state.silentAudio) state.silentAudio.pause();
+        if (typeof releaseWakeLock === 'function') releaseWakeLock();
+    }
 }
 
 function saveSettings() {
@@ -398,4 +426,40 @@ function showConfirm(msg, onConfirm) {
     const close = () => overlay.classList.add('hidden');
     okBtn.onclick = () => { close(); onConfirm(); };
     cancelBtn.onclick = close;
+}
+
+// ── Background Execution & Wake Lock Hacks ──
+
+async function requestWakeLock() {
+    if ('wakeLock' in navigator) {
+        try {
+            state.wakeLock = await navigator.wakeLock.request('screen');
+            state.wakeLock.addEventListener('release', () => console.log('Wake Lock released'));
+        } catch (err) {
+            console.error('Wake Lock error:', err);
+        }
+    }
+}
+
+function releaseWakeLock() {
+    if (state.wakeLock !== null) {
+        state.wakeLock.release().then(() => { state.wakeLock = null; });
+    }
+}
+
+function updateMediaSession(title) {
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: title || 'Lendo História...',
+            artist: 'Jardim de Histórias',
+            artwork: [
+                { src: 'icon.png', sizes: '192x192', type: 'image/png' },
+                { src: 'logo_premium.png', sizes: '512x512', type: 'image/png' }
+            ]
+        });
+
+        navigator.mediaSession.setActionHandler('play', togglePlayback);
+        navigator.mediaSession.setActionHandler('pause', togglePlayback);
+        navigator.mediaSession.setActionHandler('stop', stopPlayback);
+    }
 }
