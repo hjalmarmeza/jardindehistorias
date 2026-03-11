@@ -13,13 +13,16 @@ const state = {
     wakeLock: null
 };
 
-const VERSION = "1.3.1";
+const VERSION = "1.3.2";
 const GROQ_PROXY = "https://tiny-art-d004jardim-proxy.hjalmar-meza.workers.dev";
 
 document.addEventListener('DOMContentLoaded', () => initApp());
 
 function initApp() {
     loadVoices();
+    const versionEl = document.getElementById('appVersionDisplay');
+    if (versionEl) versionEl.innerText = VERSION;
+    
     if (state.synth.onvoiceschanged !== undefined) {
         state.synth.onvoiceschanged = loadVoices;
     }
@@ -74,13 +77,12 @@ function loadVoices() {
 
 function setupEventListeners() {
     // Hack para mantener el JS activo en background (Audio Silencioso)
+    state.silentAudio = document.getElementById('silenceAudio');
     document.body.addEventListener('click', () => {
-        if (!state.silentAudio) {
-            state.silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
-            state.silentAudio.loop = true;
-            state.silentAudio.play().then(() => {
-                state.silentAudio.pause();
-            }).catch(e => console.warn('Silent audio unlock failed', e));
+        if (state.silentAudio && state.silentAudio.paused && state.isReading) {
+            state.silentAudio.play().catch(e => console.warn('Silent audio unlock failed', e));
+        } else if (state.silentAudio && !state.silentAudio.src) {
+            state.silentAudio.load();
         }
     }, { once: true });
     // Dismiss Splash
@@ -228,14 +230,30 @@ function togglePlayback() {
         state.isReading = false;
         if (state.silentAudio) state.silentAudio.pause();
         releaseWakeLock();
+        if (state.resumeInterval) clearInterval(state.resumeInterval);
         document.getElementById('playBtn').innerHTML = '<i class="ph-fill ph-play"></i>';
     } else {
-        if (state.silentAudio) state.silentAudio.play().catch(e=>console.warn(e));
+        if (state.silentAudio) {
+            state.silentAudio.play().catch(e => console.warn(e));
+        }
         requestWakeLock();
         if (state.synth.paused) state.synth.resume();
         else state.synth.speak(state.utterance);
         state.isReading = true;
         document.getElementById('playBtn').innerHTML = '<i class="ph-fill ph-pause"></i>';
+        
+        // Anti-suspension keep-alive for iOS Lock Screen / Background
+        if (state.resumeInterval) clearInterval(state.resumeInterval);
+        state.resumeInterval = setInterval(() => {
+            if (document.visibilityState === 'hidden' && state.isReading) {
+                // Força a retomada do speech API quando bloqueado
+                state.synth.resume();
+                // Ensure silent audio is playing to keep thread alive
+                if (state.silentAudio && state.silentAudio.paused) {
+                    state.silentAudio.play().catch(e => {});
+                }
+            }
+        }, 3000);
     }
 }
 
@@ -245,6 +263,7 @@ function stopPlayback() {
         state.silentAudio.currentTime = 0;
     }
     releaseWakeLock();
+    if (state.resumeInterval) clearInterval(state.resumeInterval);
     state.synth.cancel();
     state.isReading = false;
     updateUIPlayback(false);
