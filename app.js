@@ -13,7 +13,7 @@ const state = {
     wakeLock: null
 };
 
-const VERSION = "1.3.0";
+const VERSION = "1.3.1";
 const GROQ_PROXY = "https://tiny-art-d004jardim-proxy.hjalmar-meza.workers.dev";
 
 document.addEventListener('DOMContentLoaded', () => initApp());
