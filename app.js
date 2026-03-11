@@ -13,7 +13,7 @@ const state = {
     wakeLock: null
 };
 
-const VERSION = "1.3.2";
+const VERSION = "1.3.3";
 const GROQ_PROXY = "https://tiny-art-d004jardim-proxy.hjalmar-meza.workers.dev";
 
 document.addEventListener('DOMContentLoaded', () => initApp());
@@ -211,61 +211,90 @@ function displayStory(story) {
 }
 
 function prepareUtterance(text) {
-    if (state.synth.speaking) state.synth.cancel();
-    state.utterance = new SpeechSynthesisUtterance(text);
-    state.utterance.lang = 'pt-BR';
-    const voice = state.voices.find(v => v.name === state.selectedVoice);
-    if (voice) state.utterance.voice = voice;
-    state.utterance.rate = 0.95;
-    state.utterance.onstart = () => updateUIPlayback(true);
-    state.utterance.onend = () => updateUIPlayback(false);
-    state.utterance.onboundary = (e) => {
-        if (e.name === 'word') highlightWordAt(e.charIndex);
-    };
+    if (!state.storyAudio) {
+        state.storyAudio = new Audio();
+        state.storyAudio.addEventListener('ended', playNextTTS);
+        // Bind to media session explicitly mapping
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.setActionHandler('play', togglePlayback);
+            navigator.mediaSession.setActionHandler('pause', togglePlayback);
+            navigator.mediaSession.setActionHandler('stop', stopPlayback);
+        }
+    }
+    
+    // Split text into chunks < 150 chars, splitting smartly by . , ! ?
+    let rawChunks = text.match(/[^.!?]+[.!?]*|\s*$/g).filter(s => s.trim().length > 0);
+    let finalChunks = [];
+    rawChunks.forEach(chunk => {
+        if (chunk.length < 150) finalChunks.push(chunk);
+        else {
+            let words = chunk.split(' ');
+            let temp = '';
+            words.forEach(w => {
+                if ((temp.length + w.length) > 130) {
+                    finalChunks.push(temp);
+                    temp = w + ' ';
+                } else temp += w + ' ';
+            });
+            if (temp.trim()) finalChunks.push(temp);
+        }
+    });
+    state.ttsQueue = finalChunks.map(t => t.trim()).filter(t => t.length > 0);
+    state.ttsIndex = 0;
+    state.charTracker = 0;
+    
+    // Preload first chunk
+    if (state.ttsQueue.length > 0) {
+        state.storyAudio.src = `https://translate.googleapis.com/translate_tts?ie=UTF-8&tl=pt-BR&client=tw-ob&q=${encodeURIComponent(state.ttsQueue[0])}`;
+    }
+    updateUIPlayback(false);
+}
+
+function playNextTTS() {
+    state.charTracker += state.ttsQueue[state.ttsIndex].length + 1;
+    highlightWordAt(state.charTracker); // Approximate word highlight
+    
+    state.ttsIndex++;
+    if (state.ttsIndex < state.ttsQueue.length) {
+        state.storyAudio.src = `https://translate.googleapis.com/translate_tts?ie=UTF-8&tl=pt-BR&client=tw-ob&q=${encodeURIComponent(state.ttsQueue[state.ttsIndex])}`;
+        state.storyAudio.play().catch(e => console.warn(e));
+    } else {
+        state.isReading = false;
+        updateUIPlayback(false);
+    }
 }
 
 function togglePlayback() {
     if (state.isReading) {
-        state.synth.pause();
+        if (state.storyAudio) state.storyAudio.pause();
         state.isReading = false;
         if (state.silentAudio) state.silentAudio.pause();
         releaseWakeLock();
-        if (state.resumeInterval) clearInterval(state.resumeInterval);
         document.getElementById('playBtn').innerHTML = '<i class="ph-fill ph-play"></i>';
     } else {
-        if (state.silentAudio) {
-            state.silentAudio.play().catch(e => console.warn(e));
-        }
         requestWakeLock();
-        if (state.synth.paused) state.synth.resume();
-        else state.synth.speak(state.utterance);
+        // Fallback or explicit playing of first index if needed
+        if (state.storyAudio && state.storyAudio.paused) {
+             state.storyAudio.play().catch(e => console.warn("Play blocked", e));
+        }
         state.isReading = true;
         document.getElementById('playBtn').innerHTML = '<i class="ph-fill ph-pause"></i>';
-        
-        // Anti-suspension keep-alive for iOS Lock Screen / Background
-        if (state.resumeInterval) clearInterval(state.resumeInterval);
-        state.resumeInterval = setInterval(() => {
-            if (document.visibilityState === 'hidden' && state.isReading) {
-                // Força a retomada do speech API quando bloqueado
-                state.synth.resume();
-                // Ensure silent audio is playing to keep thread alive
-                if (state.silentAudio && state.silentAudio.paused) {
-                    state.silentAudio.play().catch(e => {});
-                }
-            }
-        }, 3000);
+        updateUIPlayback(true);
     }
 }
 
 function stopPlayback() {
+    if (state.storyAudio) {
+        state.storyAudio.pause();
+        state.storyAudio.currentTime = 0;
+    }
     if (state.silentAudio) {
         state.silentAudio.pause();
         state.silentAudio.currentTime = 0;
     }
     releaseWakeLock();
-    if (state.resumeInterval) clearInterval(state.resumeInterval);
-    state.synth.cancel();
     state.isReading = false;
+    state.ttsIndex = 0;
     updateUIPlayback(false);
 }
 
