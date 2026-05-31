@@ -14,7 +14,7 @@ const state = {
     resumeInterval: null
 };
 
-const VERSION = "1.3.6";
+const VERSION = "1.3.7";
 const GROQ_PROXY = "https://tiny-art-d004jardim-proxy.hjalmar-meza.workers.dev";
 
 document.addEventListener('DOMContentLoaded', () => initApp());
@@ -28,6 +28,14 @@ function initApp() {
         state.synth.onvoiceschanged = loadVoices;
     }
     setupEventListeners();
+
+    const storedOpenAIKey = localStorage.getItem('jardim_openai_key');
+    if(storedOpenAIKey) {
+        const input = document.getElementById('openaiKey');
+        if (input) {
+            try { input.value = atob(storedOpenAIKey); } catch(e) {}
+        }
+    }
 
     // Start secret update checker
     checkUpdates();
@@ -167,32 +175,69 @@ async function startStoryProcess(category) {
 
 async function fetchStoryFromIA(category) {
     const prompts = {
-        rosa: "Vida cotidiana", lotus: "Fábulas de sabedoria", girassol: "Aventuras alegres", lavanda: "Contos relaxantes"
+        rosa: "Vida cotidiana em comarcas pacíficas e viagens inesperadas",
+        lotus: "Fábulas de sábios antigos, anéis de poder e magos",
+        girassol: "Grandes travessias épicas, batalhas heroicas e companheirismo",
+        lavanda: "Contos relaxantes sobre reinos élficos e bosques mágicos"
     };
 
-    const sysPrompt = `Você é um contador de histórias premium. 
-    Crie um conto LONGO (6-8 parágrafos grandes, aprox. 800-1000 palavras) em português.
-    A história deve ser rica, detalhada e envolvente para durar vários minutos de leitura.
-    Formato JSON: {"titulo": "Título", "historia": "Texto longo aqui..."}`;
+    const sysPrompt = `Você é um contador de histórias premium especializado em alta fantasia épica (Estilo J.R.R. Tolkien / O Senhor dos Anéis). 
+    Crie um conto ÉPICO E MUITO LONGO (exatamente 12 a 16 parágrafos grandes, aprox. 1500-2000 palavras) em português.
+    A história deve ter uma construção de mundo rica, descrições imersivas, jornadas heroicas e ser longa o suficiente para durar muitos minutos de leitura.
+    Formato JSON: {"titulo": "Título da Lenda", "historia": "Texto longo da história aqui..."}`;
 
-    const response = await fetch(GROQ_PROXY, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            model: "llama-3.1-8b-instant",
-            messages: [{ role: "system", content: sysPrompt }, { role: "user", content: prompts[category] }],
-            response_format: { type: "json_object" },
-            temperature: 0.8
-        })
-    });
+    try {
+        const response = await fetch(GROQ_PROXY, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: "llama-3.1-8b-instant",
+                messages: [{ role: "system", content: sysPrompt }, { role: "user", content: prompts[category] }],
+                response_format: { type: "json_object" },
+                temperature: 0.8
+            })
+        });
 
-    if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error?.message || `API Error ${response.status}`);
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error?.message || `API Error ${response.status}`);
+        }
+
+        const data = await response.json();
+        return JSON.parse(data.choices[0].message.content);
+    } catch (groqError) {
+        console.warn('Groq API falhou ou deu timeout. Tentando Fallback para OpenAI...', groqError);
+        
+        const storedKey = localStorage.getItem('jardim_openai_key');
+        if (!storedKey) {
+            throw new Error('Falha no servidor principal e não há chave de backup da OpenAI nos ajustes.');
+        }
+
+        let openAiKey = '';
+        try { openAiKey = atob(storedKey); } catch(e) { throw new Error('Chave da OpenAI inválida.'); }
+
+        const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openAiKey}`
+            },
+            body: JSON.stringify({
+                model: "gpt-4o-mini",
+                messages: [{ role: "system", content: sysPrompt }, { role: "user", content: prompts[category] }],
+                response_format: { type: "json_object" },
+                temperature: 0.8
+            })
+        });
+
+        if (!openAiResponse.ok) {
+            const err = await openAiResponse.json();
+            throw new Error(err.error?.message || `OpenAI API Error ${openAiResponse.status}`);
+        }
+
+        const data = await openAiResponse.json();
+        return JSON.parse(data.choices[0].message.content);
     }
-
-    const data = await response.json();
-    return JSON.parse(data.choices[0].message.content);
 }
 
 function displayStory(story) {
@@ -356,6 +401,14 @@ function updateUIPlayback(active) {
 function saveSettings() {
     state.selectedVoice = document.getElementById('voiceSelect').value;
     localStorage.setItem('jardim_voice', state.selectedVoice);
+    
+    const openaiKey = document.getElementById('openaiKey').value.trim();
+    if(openaiKey) {
+        localStorage.setItem('jardim_openai_key', btoa(openaiKey));
+    } else {
+        localStorage.removeItem('jardim_openai_key');
+    }
+    
     toggleModal('settingsModal', false);
     showToast('✨ Ajustes Salvos!', 'success');
 }
